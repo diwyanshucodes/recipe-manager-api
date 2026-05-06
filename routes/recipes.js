@@ -9,7 +9,19 @@ router.use(requireAuth);
 //get all recipes without ingredients 
 router.get('/', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM recipes WHERE user_id = $1 ORDER BY created_at DESC', [req.user.userId])
+        const {category, search} = req.query;
+        let query = 'SELECT * FROM recipes WHERE user_id=$1';
+        let params = [req.user.userId];
+        if(category){
+            query += ` AND category = $${params.length + 1}`;
+            params.push(category);
+        }
+        if(search){
+            query += ` AND title ILIKE $${params.length +1}`
+            params.push(`%${search}%`)
+        }
+        query += ' ORDER BY created_at DESC';
+        const result = await pool.query(query,params)
         res.json({ recipes: result.rows });
     } catch (err) {
         return res.status(500).json({ error: err.message });
